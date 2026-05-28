@@ -1,0 +1,1 @@
+python ccamp\clients\audit_agent_client.py D:\BaiduNetdiskDownload\fortify\java-sec-code-master --language java --queries D:\BaiduNetdiskDownload\codeql\qlpacks\codeql\java-queries\1.11.2\codeql-suites\java-security-and-quality.qls --codeql-timeout-seconds 3600

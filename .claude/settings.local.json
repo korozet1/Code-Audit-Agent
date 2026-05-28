@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p D:/BaiduNetdiskDownload/CCAM/project/app/api)",
+      "Bash(mkdir -p D:/BaiduNetdiskDownload/CCAM/project/app/services)",
+      "Bash(mkdir -p D:/BaiduNetdiskDownload/CCAM/project/app/agent)",
+      "Bash(mkdir -p D:/BaiduNetdiskDownload/CCAM/project/app/tools)",
+      "Bash(mkdir -p D:/BaiduNetdiskDownload/CCAM/project/app/models)",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/shared/constants.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/shared/constants.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/shared/env.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/shared/env.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/shared/paths.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/shared/paths.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/shared/stats.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/shared/stats.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/shared/text.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/shared/text.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/codeql/server.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/codeql/server.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/codeql/__init__.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/codeql/__init__.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/fortify/server.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/fortify/server.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/fortify/__init__.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/fortify/__init__.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/mcp_servers/codeql_server.py\" \"D:/BaiduNetdiskDownload/CCAM/project/mcp_servers/codeql_server.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/mcp_servers/fortify_server.py\" \"D:/BaiduNetdiskDownload/CCAM/project/mcp_servers/fortify_server.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/clients/__init__.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/clients/__init__.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/clients/codeql_client.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/clients/codeql_client.py\")",
+      "Bash(cp \"D:/BaiduNetdiskDownload/CCAM/CCAMP/ccamp/clients/fortify_client.py\" \"D:/BaiduNetdiskDownload/CCAM/project/ccamp/clients/fortify_client.py\")"
+    ]
+  }
+}
