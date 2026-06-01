@@ -52,8 +52,8 @@ def find_sourceanalyzer_binary() -> str:
             return resolved
 
     raise RuntimeError(
-        "Fortify sourceanalyzer executable not found. Make sure "
-        "`sourceanalyzer.exe -version` works, or set FORTIFY_SOURCEANALYZER_BIN."
+        "未找到 Fortify sourceanalyzer 可执行文件。请确认 "
+        "`sourceanalyzer.exe -version` 可以正常执行，或设置 FORTIFY_SOURCEANALYZER_BIN。"
     )
 
 
@@ -88,8 +88,8 @@ def ensure_rules_available() -> None:
 
     rules_text = str(rules_dir) if rules_dir else "<unknown>"
     raise RuntimeError(
-        "No Fortify rules files found. Copy legal Fortify rule files into "
-        f"{rules_text}, or set FORTIFY_INSTALLED_RULES_DIR to the active rules directory."
+        "未找到 Fortify 规则文件。请将合法的 Fortify 规则文件复制到 "
+        f"{rules_text}，或将 FORTIFY_INSTALLED_RULES_DIR 设置为当前有效的规则目录。"
     )
 
 

@@ -72,6 +72,21 @@ def field_line(label: str, value: Any) -> str:
     return f"- **{label}**：{md_cell(value)}"
 
 
+def finding_lines(findings: list[dict[str, Any]]) -> list[str]:
+    if not findings:
+        return ["  - 无"]
+    lines = []
+    for index, finding in enumerate(findings, start=1):
+        location = finding.get("start_line") or "?"
+        rule = finding.get("rule_name") or finding.get("rule_id") or "<unknown rule>"
+        severity = finding.get("severity") or "UNKNOWN"
+        message = finding.get("message") or ""
+        lines.append(f"  - {index}. line {location} | {severity} | {md_cell(rule)}")
+        if message:
+            lines.append(f"     - {md_cell(message)}")
+    return lines
+
+
 def render_issue_cards(
     prefix: str,
     items: list[dict[str, Any]],
@@ -96,6 +111,14 @@ def render_issue_cards(
             value: Any
             if key == "lines":
                 value = lines_text(item.get("lines") or [])
+            elif key == "fortify_findings":
+                lines.append(f"- **{label}**：")
+                lines.extend(finding_lines(item.get("fortify_findings") or []))
+                continue
+            elif key == "codeql_evidence":
+                lines.append(f"- **{label}**：")
+                lines.extend(finding_lines(item.get("codeql_evidence") or []))
+                continue
             else:
                 value = item.get(key)
             if value not in (None, "", []):
@@ -117,6 +140,19 @@ def tool_summary_rows(merged_result: dict[str, Any]) -> list[list[Any]]:
             item.get("raw_report_path"),
         ])
     return rows
+
+
+def summary_rows(merged_result: dict[str, Any]) -> list[list[Any]]:
+    summary = merged_result.get("summary") or {}
+    return [
+        ["Fortify 原始 findings", summary.get("fortify_total_findings")],
+        ["CodeQL 原始 findings", summary.get("codeql_total_findings")],
+        ["Fortify 主问题组", summary.get("merged_groups")],
+        ["CodeQL 佐证 findings", summary.get("codeql_evidence_findings")],
+        ["CodeQL 独有忽略 findings", summary.get("ignored_codeql_findings")],
+        ["双工具确认问题组", summary.get("direct_overlap_groups")],
+        ["P0/P1 优先复核组", summary.get("high_priority_groups")],
+    ]
 
 
 def source_snippet(project_dir: Path, relative_file: str, lines: list[int], context: int = 5) -> str:
@@ -159,6 +195,7 @@ def review_payload(
     payload = {
         "report_outline": REPORT_OUTLINE,
         "summary": merged_result.get("summary"),
+        "merge_policy": merged_result.get("merge_policy"),
         "direct_overlap_groups": merged_result.get("direct_overlap_groups"),
         "deduplication_candidates": (merged_result.get("deduplication_candidates") or [])[:max_candidates],
         "false_positive_review_candidates": false_positive_candidates,
@@ -185,6 +222,7 @@ async def generate_expert_review(
         约束：
         - 不要重写完整报告，不要生成扫描概览、类型分布和附录。
         - 不要编造 JSON 中不存在的文件、行号、规则或数量。
+        - 最终问题清单以 Fortify 为主；CodeQL 只是佐证。CodeQL 独有项已按当前口径忽略，不要把它们重新加入问题清单。
         - 去重判断要说明“合并处理”或“保留独立问题”的理由。
         - 误报判断只能使用“疑似误报”“需人工确认”“暂不建议判误报”，除非源码片段能明确证明，否则不要写“确定误报”。
         - 如果 source_snippet 为空，要明确说明证据不足，需要人工看源码。
@@ -210,6 +248,7 @@ def render_deterministic_report(
     expert_review: str,
 ) -> str:
     summary = merged_result.get("summary") or {}
+    ignored_codeql_summary = merged_result.get("ignored_codeql_summary") or {}
     type_distribution = merged_result.get("type_distribution") or []
     direct_overlap_groups = merged_result.get("direct_overlap_groups") or []
     high_priority_groups = merged_result.get("high_priority_groups") or []
@@ -224,10 +263,12 @@ def render_deterministic_report(
         f"项目路径：`{merged_result.get('project_path')}`",
         "",
         (
-            f"结论一句话：两个工具原始共 {summary.get('raw_total_findings')} 条结果，"
-            f"合并为 {summary.get('merged_groups')} 个待审核问题组；"
-            f"其中 P0/P1 共 {summary.get('high_priority_groups')} 组，"
-            f"去重候选 {summary.get('deduplication_candidates')} 组，"
+            f"结论一句话：本报告以 Fortify 为最终问题全集，"
+            f"Fortify 原始 {summary.get('fortify_total_findings')} 条结果被合并为 "
+            f"{summary.get('merged_groups')} 个主问题组；"
+            f"CodeQL 中 {summary.get('codeql_evidence_findings')} 条匹配为佐证，"
+            f"{summary.get('ignored_codeql_findings')} 条独有发现按当前口径未纳入最终问题清单；"
+            f"P0/P1 共 {summary.get('high_priority_groups')} 组，去重候选 {summary.get('deduplication_candidates')} 组，"
             f"疑似误报/需确认候选 {summary.get('false_positive_review_candidates')} 组。"
         ),
         "",
@@ -238,23 +279,30 @@ def render_deterministic_report(
             tool_summary_rows(merged_result),
         ),
         "",
+        *table(
+            ["指标", "数量"],
+            summary_rows(merged_result),
+        ),
+        "",
         "## 2. 合并规则与风险口径",
         "",
+        "- 主基线：Fortify。最终问题清单、P0/P1、去重、误报候选和附录均只从 Fortify 主问题组生成。",
+        "- CodeQL 角色：仅作为佐证工具。只有同文件且同归一化漏洞类型时，CodeQL finding 才挂载到 Fortify 主问题组。",
+        "- CodeQL 独有项：不进入最终问题清单，不进入 P0/P1，不进入附录；仅在概览中统计忽略数量。",
         "- 合并键：漏洞类型归一化 + 文件路径。",
-        "- 直接重合：同一漏洞类型且同一文件被两个工具同时发现。",
-        "- 类型重合：同一漏洞类型被两个工具发现，但不一定落在同一文件。",
-        "- P0：双工具确认或高危可利用类型；P1：其他高风险；P2：中风险；P3：低风险/质量建议。",
+        "- 双工具确认：Fortify 主问题组匹配到 CodeQL 佐证。",
+        "- P0：双工具确认或 Fortify 高危可利用类型；P1：其他 Fortify 高风险；P2：中风险；P3：低风险/质量建议。",
         "- 误报判断：没有源码证据时只能标记为疑似误报或需人工确认。",
         "",
         "## 3. 漏洞类型分布",
         "",
         *table(
-            ["漏洞类型", "Fortify", "CodeQL", "原始条数", "来源"],
+            ["漏洞类型", "Fortify findings", "CodeQL 佐证", "Fortify 主线条数", "来源"],
             [
                 [
                     item.get("vulnerability_type"),
                     item.get("fortify"),
-                    item.get("codeql"),
+                    item.get("codeql_evidence"),
                     item.get("raw_count"),
                     item.get("sources"),
                 ]
@@ -271,44 +319,47 @@ def render_deterministic_report(
             direct_overlap_groups,
             [
                 ("文件", "file"),
-                ("来源", "sources"),
-                ("严重级别", "severities"),
-                ("行号", "lines"),
-                ("规则", "rules"),
-                ("原始条数", "finding_count"),
+                ("Fortify 严重级别", "severities"),
+                ("Fortify 行号", "lines"),
+                ("Fortify 规则", "rules"),
+                ("Fortify 原始条数", "fortify_finding_count"),
+                ("CodeQL 佐证条数", "codeql_evidence_count"),
+                ("CodeQL 佐证行号", "codeql_lines"),
+                ("CodeQL 佐证规则", "codeql_rules"),
             ],
         ),
         "",
         "### 4.2 工具侧差异",
         "",
         *table(
-            ["漏洞类型", "Fortify", "CodeQL", "差异说明"],
+            ["漏洞类型", "Fortify findings", "CodeQL 佐证", "差异说明"],
             [
                 [
                     item.get("vulnerability_type"),
                     item.get("fortify"),
-                    item.get("codeql"),
-                    "仅 Fortify" if item.get("fortify") and not item.get("codeql")
-                    else "仅 CodeQL" if item.get("codeql") and not item.get("fortify")
-                    else "双工具覆盖",
+                    item.get("codeql_evidence"),
+                    "Fortify 主线，CodeQL 有佐证" if item.get("codeql_evidence")
+                    else "仅 Fortify 主线发现",
                 ]
                 for item in type_distribution
             ],
         ),
         "",
+        f"CodeQL 独有发现共 {ignored_codeql_summary.get('total_findings', 0)} 条，按当前 Fortify 主导口径未纳入最终问题清单。",
+        "",
         "## 5. 去重分析",
         "",
-        "以下条目由程序完整列出所有去重候选，大模型复核意见见后续小节。",
+        "以下条目只基于 Fortify 主问题组生成；CodeQL 佐证只用于提高可信度，不产生独立去重对象。",
         "",
         *render_issue_cards(
             "D",
             deduplication_candidates,
             [
                 ("文件", "file"),
-                ("来源", "sources"),
-                ("原始条数", "finding_count"),
-                ("行号", "lines"),
-                ("规则", "rules"),
+                ("Fortify 原始条数", "fortify_finding_count"),
+                ("CodeQL 佐证条数", "codeql_evidence_count"),
+                ("Fortify 行号", "lines"),
+                ("Fortify 规则", "rules"),
                 ("程序建议", "dedup_suggestion"),
                 ("理由", "reason"),
             ],
@@ -316,16 +367,17 @@ def render_deterministic_report(
         "",
         "## 6. 疑似误报与需人工确认项",
         "",
-        "以下条目由程序完整列出所有需复核候选，大模型复核意见见后续小节。",
+        "以下条目只从 Fortify 主问题组中选出；匹配到 CodeQL 佐证的问题不会轻易进入疑似误报候选。",
         "",
         *render_issue_cards(
             "F",
             false_positive_candidates,
             [
                 ("文件", "file"),
-                ("来源", "sources"),
-                ("行号", "lines"),
-                ("规则", "rules"),
+                ("Fortify 行号", "lines"),
+                ("Fortify 规则", "rules"),
+                ("Fortify 原始条数", "fortify_finding_count"),
+                ("CodeQL 佐证条数", "codeql_evidence_count"),
                 ("程序建议", "review_suggestion"),
                 ("理由", "reason"),
             ],
@@ -342,11 +394,12 @@ def render_deterministic_report(
             high_priority_groups,
             [
                 ("文件", "file"),
-                ("来源", "sources"),
-                ("严重级别", "severities"),
-                ("行号", "lines"),
-                ("规则", "rules"),
-                ("原始条数", "finding_count"),
+                ("Fortify 严重级别", "severities"),
+                ("Fortify 行号", "lines"),
+                ("Fortify 规则", "rules"),
+                ("Fortify 原始条数", "fortify_finding_count"),
+                ("CodeQL 佐证条数", "codeql_evidence_count"),
+                ("CodeQL 佐证规则", "codeql_rules"),
             ],
         ),
         "",
@@ -363,7 +416,8 @@ def render_deterministic_report(
         "",
         "## 9. 给 AI Agent 的落地处理建议",
         "",
-        "- 先读取 `merged-analysis.json`，以 `groups` 为工单粒度，而不是以原始 finding 为工单粒度。",
+        "- 先读取 `merged-analysis.json`，以 Fortify 主问题组 `groups` 为工单粒度，而不是以 CodeQL 独有 finding 为工单。",
+        "- 匹配到 CodeQL 佐证的 Fortify 主问题组优先复核；CodeQL 独有项按当前口径不创建工单。",
         "- 对 `deduplication_candidates` 生成合并工单，对 `false_positive_review_candidates` 生成复核工单。",
         "- P0/P1 问题优先生成补丁；P2/P3 问题可批量处理或进入安全债队列。",
         "- 修复后重新运行 CodeQL 和 Fortify，并对比本报告中的文件、规则和行号是否消除。",
@@ -371,18 +425,21 @@ def render_deterministic_report(
         "",
         "## 附录 A：合并明细清单",
         "",
-        "以下完整列出所有合并问题组，避免模型摘要导致明细丢失。",
+        "以下完整列出所有 Fortify 主问题组，避免模型摘要导致明细丢失。CodeQL 信息仅作为佐证展示。",
         "",
         *render_issue_cards(
             "A",
             groups,
             [
                 ("文件", "file"),
-                ("来源", "sources"),
-                ("严重级别", "severities"),
-                ("行号", "lines"),
-                ("规则", "rules"),
-                ("原始条数", "finding_count"),
+                ("Fortify 严重级别", "severities"),
+                ("Fortify 行号", "lines"),
+                ("Fortify 规则", "rules"),
+                ("Fortify 原始条数", "fortify_finding_count"),
+                ("CodeQL 佐证条数", "codeql_evidence_count"),
+                ("CodeQL 佐证规则", "codeql_rules"),
+                ("Fortify 原始 findings", "fortify_findings"),
+                ("CodeQL 佐证 findings", "codeql_evidence"),
                 ("消息摘要", "messages"),
             ],
         ),

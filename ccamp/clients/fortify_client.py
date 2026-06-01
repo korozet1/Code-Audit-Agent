@@ -40,7 +40,7 @@ async def run(
     project_dir = Path(project_path).resolve()
     async with Client(mcp_url) as client:
         tools = await client.list_tools()
-        print("Available tools:")
+        print("可用工具：")
         for tool in tools:
             print(f"- {tool.name}")
 
@@ -72,38 +72,38 @@ async def run(
     )
 
     print(json.dumps(payload, ensure_ascii=False, indent=2))
-    print(f"\nFortify MCP result written to: {output_path}")
+    print(f"\nFortify MCP 结果已写入：{output_path}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Test the Fortify MCP server.")
-    parser.add_argument("project_path", help="Project directory to scan.")
-    parser.add_argument("--mcp-url", default=MCP_URL, help="Streamable HTTP MCP URL.")
+    parser = argparse.ArgumentParser(description="测试 Fortify MCP 服务。")
+    parser.add_argument("project_path", help="待扫描项目目录。")
+    parser.add_argument("--mcp-url", default=MCP_URL, help="Streamable HTTP MCP 地址。")
     parser.add_argument("--build-id", default=None)
     parser.add_argument(
         "--source-path",
         default=None,
-        help="Source path to translate. Defaults to <project>\\src when it exists.",
+        help="要转换的源码路径。存在 <project>\\src 时默认使用该目录。",
     )
     parser.add_argument(
         "--build-command",
         nargs="+",
         default=None,
-        help="Optional build command, for example: mvn -DskipTests clean package",
+        help="可选构建命令，例如：mvn -DskipTests clean package",
     )
     parser.add_argument("--timeout-seconds", type=int, default=1800)
     parser.add_argument(
         "--max-findings",
         type=int,
         default=0,
-        help="Maximum findings to return. Use 0 to return all parsed results.",
+        help="最大返回 finding 数。使用 0 表示返回全部解析结果。",
     )
     parser.add_argument(
         "--output",
         default=None,
         help=(
-            "Write the normalized MCP result JSON to this path. "
-            "Defaults to <project>\\reports\\fortify-mcp-result.json."
+            "将规范化后的 MCP 结果 JSON 写入该路径。"
+            "默认：<project>\\reports\\fortify-mcp-result.json。"
         ),
     )
     args = parser.parse_args()

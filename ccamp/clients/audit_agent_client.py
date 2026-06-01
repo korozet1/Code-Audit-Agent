@@ -60,34 +60,34 @@ async def run(args: argparse.Namespace) -> None:
 
     if final_event:
         data = final_event.get("data") or {}
-        print("\nOutputs:")
+        print("\n输出：")
         print(f"- report_path: {data.get('report_path')}")
         print(f"- merged_path: {data.get('merged_path')}")
         if data.get("errors"):
-            print("- errors:")
+            print("- 错误：")
             for item in data["errors"]:
                 print(f"  - {item}")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run the CodeQL + Fortify code audit agent."
+        description="运行 CodeQL + Fortify 代码审计 Agent。"
     )
-    parser.add_argument("project_path", help="Project directory to scan.")
-    parser.add_argument("--language", default="auto", help="CodeQL language. Default: auto.")
-    parser.add_argument("--queries", default=None, help="CodeQL query suite or qlpack path.")
-    parser.add_argument("--database-path", default=None, help="CodeQL database path.")
-    parser.add_argument("--codeql-output", default=None, help="CodeQL raw output file.")
-    parser.add_argument("--codeql-output-format", default=None, help="CodeQL output format.")
-    parser.add_argument("--source-root", default=".", help="CodeQL source root.")
-    parser.add_argument("--build-mode", default="none", help="CodeQL build mode.")
+    parser.add_argument("project_path", help="待扫描项目目录。")
+    parser.add_argument("--language", default="auto", help="CodeQL 语言。默认：auto。")
+    parser.add_argument("--queries", default=None, help="CodeQL 查询套件或 qlpack 路径。")
+    parser.add_argument("--database-path", default=None, help="CodeQL 数据库路径。")
+    parser.add_argument("--codeql-output", default=None, help="CodeQL 原始输出文件。")
+    parser.add_argument("--codeql-output-format", default=None, help="CodeQL 输出格式。")
+    parser.add_argument("--source-root", default=".", help="CodeQL 源码根目录。")
+    parser.add_argument("--build-mode", default="none", help="CodeQL 构建模式。")
     parser.add_argument("--codeql-timeout-seconds", type=int, default=3600)
     parser.add_argument("--fortify-timeout-seconds", type=int, default=1800)
     parser.add_argument("--max-codeql-results", type=int, default=0)
     parser.add_argument("--max-fortify-findings", type=int, default=0)
     parser.add_argument("--max-report-findings", type=int, default=240)
-    parser.add_argument("--report-output", default=None, help="Markdown report output path.")
-    parser.add_argument("--merged-output", default=None, help="Merged analysis JSON output path.")
+    parser.add_argument("--report-output", default=None, help="Markdown 报告输出路径。")
+    parser.add_argument("--merged-output", default=None, help="合并分析 JSON 输出路径。")
     return parser
 
 

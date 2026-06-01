@@ -70,8 +70,8 @@ def find_codeql_binary() -> str:
             return resolved
 
     raise RuntimeError(
-        "CodeQL executable not found. Make sure `codeql version` works, "
-        "or set CODEQL_BIN to your codeql.exe path."
+        "未找到 CodeQL 可执行文件。请确认 `codeql version` 可以正常执行，"
+        "或将 CODEQL_BIN 设置为 codeql.exe 路径。"
     )
 
 

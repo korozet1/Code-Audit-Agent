@@ -68,9 +68,9 @@ class CodeAuditRequest(BaseModel):
     def validate_project_path(cls, value: str) -> str:
         path = Path(value).expanduser()
         if not path.exists():
-            raise ValueError(f"Project path does not exist: {path}")
+            raise ValueError(f"项目路径不存在：{path}")
         if not path.is_dir():
-            raise ValueError(f"Project path is not a directory: {path}")
+            raise ValueError(f"项目路径不是目录：{path}")
         return str(path.resolve())
 
 

@@ -29,7 +29,6 @@ class Settings(BaseSettings):
     dashscope_api_key: str = ""
     dashscope_api_base: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     dashscope_model: str = "qwen-max"
-
     # --- MCP: CodeQL ---
     codeql_mcp_host: str = "127.0.0.1"
     codeql_mcp_port: int = 8007
